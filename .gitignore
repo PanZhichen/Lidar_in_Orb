@@ -23,4 +23,6 @@ Vocabulary/bin_vocabulary
 build/
 *~
 lib/
+.kdev4/
+Lidar_in_Orb.kdev4
 

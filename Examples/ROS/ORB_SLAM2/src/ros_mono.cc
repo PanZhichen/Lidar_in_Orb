@@ -26,6 +26,9 @@
 
 #include<ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 #include<opencv2/core/core.hpp>
 
@@ -38,7 +41,7 @@ class ImageGrabber
 public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
-    void GrabImage(const sensor_msgs::ImageConstPtr& msg);
+    void GrabImage(const sensor_msgs::ImageConstPtr& msgImag,const sensor_msgs::ImageConstPtr& msgDepth);
 
     ORB_SLAM2::System* mpSLAM;
 };
@@ -61,7 +64,15 @@ int main(int argc, char **argv)
     ImageGrabber igb(&SLAM);
 
     ros::NodeHandle nodeHandler;
-    ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
+    //0131ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
+    
+    //************************************************************************************************************//
+    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nodeHandler, "/camera/rgb/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nodeHandler, "camera/depth_registered/image_raw", 1);
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
+    message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
+    sync.registerCallback(boost::bind(&ImageGrabber::GrabImage,&igb,_1,_2));
+    //************************************************************************************************************//
 
     ros::spin();
 
@@ -76,13 +87,13 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
-{
+void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msgImag,const sensor_msgs::ImageConstPtr& msgDepth)
+{   
     // Copy the ros image message to cv::Mat.
-    cv_bridge::CvImageConstPtr cv_ptr;
+    cv_bridge::CvImageConstPtr cv_ptrImage;
     try
     {
-        cv_ptr = cv_bridge::toCvShare(msg);
+        cv_ptrImage = cv_bridge::toCvShare(msgImag);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -90,7 +101,18 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
 
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    cv_bridge::CvImageConstPtr cv_ptrDepth;
+    try
+    {
+        cv_ptrDepth = cv_bridge::toCvShare(msgDepth);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+        return;
+    }
+
+    mpSLAM->TrackMonocular(cv_ptrImage->image,cv_ptrDepth->image,cv_ptrImage->header.stamp.toSec());
 }
 
 
