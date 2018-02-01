@@ -49,7 +49,7 @@ public:
     // Main function
     void Run();
 
-    void InsertKeyFrame(KeyFrame* pKF);
+    void InsertKeyFrame(KeyFrame* pKF, cv::Mat &Depth);
 
     // Thread Synch
     void RequestStop();
@@ -86,6 +86,9 @@ protected:
     cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
 
     cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
+    
+    //modified at 2018/02/01
+    cv::Mat DepthImage;
 
     bool mbMonocular;
 

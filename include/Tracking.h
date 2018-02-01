@@ -187,6 +187,9 @@ protected:
     cv::Mat mDistCoef;
     float mbf;
 
+    //modified at 2018/02/01
+    cv::Mat DepthImage;
+    
     //New KeyFrame rules (according to fps)
     int mMinFrames;
     int mMaxFrames;

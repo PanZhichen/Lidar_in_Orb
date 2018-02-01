@@ -111,10 +111,12 @@ void LocalMapping::Run()
     SetFinish();
 }
 
-void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
+void LocalMapping::InsertKeyFrame(KeyFrame *pKF, cv::Mat &Depth)
 {
     unique_lock<mutex> lock(mMutexNewKFs);
     mlNewKeyFrames.push_back(pKF);
+    DepthImage=Depth;
+    //std::cout<<DepthImage.at<float>(6,6)<<std::endl;
     mbAbortBA=true;
 }
 
