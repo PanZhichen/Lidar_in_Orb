@@ -617,9 +617,8 @@ cv::Mat KeyFrame::UnprojectStereo(int i)
     const float z = mvDepth[i];
     if(z>0)
     {
-        const float u = mvKeysUn[i].pt.x;
-        const float v = mvKeysUn[i].pt.y;
-	//std::cout<<"u="<<u<<"  Un="<<mvKeysUn[i].pt.x<<"  mvKeys="<<mvKeys[i].pt.x<<std::endl;
+        const float u = mvKeysUn[i].pt.x;//modified at 2018/02/01, mvKeys->mvKeysUn
+        const float v = mvKeysUn[i].pt.y;//modified at 2018/02/01, mvKeys->mvKeysUn
         const float x = (u-cx)*z*invfx;
         const float y = (v-cy)*z*invfy;
         cv::Mat x3Dc = (cv::Mat_<float>(3,1) << x, y, z);
