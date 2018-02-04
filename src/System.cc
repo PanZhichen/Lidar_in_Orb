@@ -62,8 +62,9 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        cerr << "Failed to open settings file at: " << strSettingsFile << endl;
        exit(-1);
     }
-
+    
     cv::FileNode mapfilen = fsSettings["Map.mapfile"];
+    
     bool bReuseMap = false;
     if (!mapfilen.empty())
     {

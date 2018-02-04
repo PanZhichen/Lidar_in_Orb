@@ -210,6 +210,7 @@ void LocalMapping::CreateNewMapPoints()
 {
     //************************************************************//
     vector<float> imDepth_temp = vector<float>(mpCurrentKeyFrame->N,-1);
+    int count_features=0;
     for(int i=0; i<mpCurrentKeyFrame->N; i++)
     {
 	const cv::KeyPoint &kp = mpCurrentKeyFrame->mvKeys[i];
@@ -221,15 +222,17 @@ void LocalMapping::CreateNewMapPoints()
 
 	if(d>0){
 	    imDepth_temp[i] = d;
+	    count_features++;
 	    //std::cout<<"depth"<<i<<"="<<imDepth_temp[i]<<"  ";
 	}
     }
+    //std::cout<<"total"<<mpCurrentKeyFrame->N<<"   depth"<<count_features<<std::endl;
     //***********************************************************//
   
     // Retrieve neighbor keyframes in covisibility graph
     int nn = 10;
     if(mbMonocular)
-        nn=20;
+        nn=10; //changed frome 20 to 10
     const vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
 
     ORBmatcher matcher(0.6,false);
@@ -495,7 +498,7 @@ void LocalMapping::CreateNewMapPoints()
             nnew++;
         }
         //Output total number of ORB fratures needed to be triangulated and how many features can be matched with depth value in depth image directly.
-        std::cout<<"nmatches="<<nmatches<<"  count_depth"<<count_depth<<std::endl;
+        //std::cout<<"nmatches="<<nmatches<<"  count_depth"<<count_depth<<std::endl;
     }
 }
 

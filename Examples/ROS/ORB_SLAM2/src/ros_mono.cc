@@ -25,7 +25,10 @@
 #include<chrono>
 
 #include<ros/ros.h>
+#include <nav_msgs/Odometry.h>
 #include <cv_bridge/cv_bridge.h>
+#include <geometry_msgs/Pose.h>
+#include <tf/transform_broadcaster.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -33,8 +36,11 @@
 #include<opencv2/core/core.hpp>
 
 #include"../../../include/System.h"
+#include"../../../include/Converter.h"
+
 
 using namespace std;
+ros::Publisher voPubliser;
 
 class ImageGrabber
 {
@@ -48,7 +54,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "Mono");
+    ros::init(argc, argv, "lidar_orb_mono");
     ros::start();
 
     if(argc != 3)
@@ -72,6 +78,8 @@ int main(int argc, char **argv)
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabImage,&igb,_1,_2));
+    
+    voPubliser = nodeHandler.advertise<nav_msgs::Odometry> ("/world_to_camera", 5);
     //************************************************************************************************************//
 
     ros::spin();
@@ -112,7 +120,25 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msgImag,const sen
         return;
     }
 
-    mpSLAM->TrackMonocular(cv_ptrImage->image,cv_ptrDepth->image,cv_ptrImage->header.stamp.toSec());
+    cv::Mat Tcw=mpSLAM->TrackMonocular(cv_ptrImage->image,cv_ptrDepth->image,cv_ptrImage->header.stamp.toSec());
+    cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+    cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+
+    vector<float> q = ORB_SLAM2::Converter::toQuaternion(Rwc);
+    
+    nav_msgs::Odometry voData;
+    voData.header.frame_id = "world";
+    voData.child_frame_id = "camera";
+    voData.header.stamp = cv_ptrImage->header.stamp;
+    voData.pose.pose.orientation.x = q[0];
+    voData.pose.pose.orientation.y = q[1];
+    voData.pose.pose.orientation.z = q[2];
+    voData.pose.pose.orientation.w = q[3];
+    voData.pose.pose.position.x = twc.at<float>(0, 0);
+    voData.pose.pose.position.y = twc.at<float>(0, 1);
+    voData.pose.pose.position.z = twc.at<float>(0, 2);
+    voData.twist.twist.angular.x = 0.0;
+    voData.twist.twist.angular.y = 0.0;
+    voData.twist.twist.angular.z = 0.0;
+    voPubliser.publish(voData);
 }
-
-
