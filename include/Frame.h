@@ -32,6 +32,11 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/kdtree/kdtree_flann.h>
+
 namespace ORB_SLAM2
 {
 #define FRAME_GRID_ROWS 48
@@ -57,6 +62,9 @@ public:
     // Constructor for Monocular cameras.
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
+    // Constructor for point cloud.
+    Frame(const cv::Mat &imGray, const pcl::PointCloud<pcl::PointXYZI>::Ptr &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
 
@@ -94,6 +102,9 @@ public:
 
     // Associate a "right" coordinate to a keypoint if there is valid depth in the depthmap.
     void ComputeStereoFromRGBD(const cv::Mat &imDepth);
+    
+    // Associate a "right" coordinate to a keypoint if there is valid depth in the depthmap.
+    void ComputeStereoFromPointCloud(const pcl::PointCloud<pcl::PointXYZI>::Ptr &DepthCloud);
 
     // Backprojects a keypoint (if stereo/depth info available) into 3D world coordinates.
     cv::Mat UnprojectStereo(const int &i);

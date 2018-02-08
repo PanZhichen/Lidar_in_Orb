@@ -248,11 +248,10 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const cv::Mat &depth, const double &timestamp)
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp)
 {
     mImGray = im;
-    //cv::Mat imDepth = depth;
-    DepthImage = depth;
+    //DepthImage = depth;
 
     if(mImGray.channels()==3)
     {
@@ -268,12 +267,11 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const cv::Mat &depth, co
         else
             cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
     }
-    if((fabs(mDepthMapFactor-1.0f)>1e-5) || DepthImage.type()!=CV_32F)
-        DepthImage.convertTo(DepthImage,CV_32F,mDepthMapFactor);
+    //if((fabs(mDepthMapFactor-1.0f)>1e-5) || DepthImage.type()!=CV_32F)
+    //    DepthImage.convertTo(DepthImage,CV_32F,mDepthMapFactor);
 
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
-        //mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
-        mCurrentFrame = Frame(mImGray,DepthImage,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+        mCurrentFrame = Frame(mImGray,depth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
     else
         mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 

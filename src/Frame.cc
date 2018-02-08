@@ -227,6 +227,62 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     AssignFeaturesToGrid();
 }
 
+Frame::Frame(const cv::Mat &imGray, const pcl::PointCloud<pcl::PointXYZI>::Ptr &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+    :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+{
+    // Frame ID
+    mnId=nNextId++;
+
+    // Scale Level Info
+    mnScaleLevels = mpORBextractorLeft->GetLevels();
+    mfScaleFactor = mpORBextractorLeft->GetScaleFactor();    
+    mfLogScaleFactor = log(mfScaleFactor);
+    mvScaleFactors = mpORBextractorLeft->GetScaleFactors();
+    mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
+    mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
+    mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
+
+    // ORB extraction
+    ExtractORB(0,imGray);
+
+    N = mvKeys.size();
+
+    if(mvKeys.empty())
+        return;
+
+    UndistortKeyPoints();
+
+    ComputeStereoFromPointCloud(imDepth);
+
+    mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
+    mvbOutlier = vector<bool>(N,false);
+
+    // This is done only for the first Frame (or after a change in the calibration)
+    if(mbInitialComputations)
+    {
+        ComputeImageBounds(imGray);
+
+        mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/static_cast<float>(mnMaxX-mnMinX);
+        mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/static_cast<float>(mnMaxY-mnMinY);
+
+        fx = K.at<float>(0,0);
+        fy = K.at<float>(1,1);
+        cx = K.at<float>(0,2);
+        cy = K.at<float>(1,2);
+        invfx = 1.0f/fx;
+        invfy = 1.0f/fy;
+
+        mbInitialComputations=false;
+    }
+
+    mb = mbf/fx;
+
+    AssignFeaturesToGrid();
+}
+
+
+
 void Frame::AssignFeaturesToGrid()
 {
     int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
@@ -661,6 +717,99 @@ void Frame::ComputeStereoFromRGBD(const cv::Mat &imDepth)
             mvuRight[i] = kpU.pt.x-mbf/d;
         }
     }
+}
+
+void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >::Ptr& DepthCloud)
+{
+    mvuRight = vector<float>(N,-1);
+    mvDepth = vector<float>(N,-1);
+    pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdTree(new pcl::KdTreeFLANN<pcl::PointXYZI>());
+    std::vector<int> pointSearchInd;
+    std::vector<float> pointSearchSqrDis;
+    pcl::PointXYZI ips;
+    u_int depthCloudNum = DepthCloud->points.size();
+    
+    
+    if (depthCloudNum > 10) 
+    {
+	for (u_int i = 0; i < depthCloudNum; i++) 
+	{
+	    DepthCloud->points[i].intensity = DepthCloud->points[i].z;
+	    DepthCloud->points[i].x *= 10 / DepthCloud->points[i].z;
+	    DepthCloud->points[i].y *= 10 / DepthCloud->points[i].z;
+	    DepthCloud->points[i].z = 10;
+	}
+	kdTree->setInputCloud(DepthCloud);
+        //---------------------------------------------------------------------
+	
+	for(int i=0; i<N; i++)
+	{
+	    //const cv::KeyPoint &kp = mvKeys[i];
+	    const cv::KeyPoint &kpU = mvKeysUn[i];
+
+	    float z = 10.0;
+	    const float u = mvKeysUn[i].pt.x;
+            const float v = mvKeysUn[i].pt.y;
+            const float x = (u-cx)*z*invfx;
+            const float y = (v-cy)*z*invfy;
+	    
+	    ips.x = x;
+            ips.y = y;
+	    ips.z = z;
+	    
+	    kdTree->nearestKSearch(ips, 3, pointSearchInd, pointSearchSqrDis);
+
+	    double minDepth, maxDepth;
+	    float d=-1;
+	    if (pointSearchSqrDis[0] < 0.5 && pointSearchInd.size() == 3) 
+	    {
+	      pcl::PointXYZI depthPoint = DepthCloud->points[pointSearchInd[0]];
+	      double x1 = depthPoint.x * depthPoint.intensity / 10;
+	      double y1 = depthPoint.y * depthPoint.intensity / 10;
+	      double z1 = depthPoint.intensity;
+	      minDepth = z1;
+	      maxDepth = z1;
+
+	      depthPoint = DepthCloud->points[pointSearchInd[1]];
+	      double x2 = depthPoint.x * depthPoint.intensity / 10;
+	      double y2 = depthPoint.y * depthPoint.intensity / 10;
+	      double z2 = depthPoint.intensity;
+	      minDepth = (z2 < minDepth)? z2 : minDepth;
+	      maxDepth = (z2 > maxDepth)? z2 : maxDepth;
+
+	      depthPoint = DepthCloud->points[pointSearchInd[2]];
+	      double x3 = depthPoint.x * depthPoint.intensity / 10;
+	      double y3 = depthPoint.y * depthPoint.intensity / 10;
+	      double z3 = depthPoint.intensity;
+	      minDepth = (z3 < minDepth)? z3 : minDepth;
+	      maxDepth = (z3 > maxDepth)? z3 : maxDepth;
+	      //目前只知道该特征点在相机坐标系下的归一化坐标[u,v]（即[X/Z,Y/Z,1]），
+	      //通过计算ipr.s获得对应于该特征点的深度值,即系数Z，则Z*u和Z*v就可获得该特征点在相机坐标系下实际的X,Y,Z坐标
+	      double u = ips.x/10.0;
+	      double v = ips.y/10.0;
+	      d =  (x1*y2*z3 - x1*y3*z2 - x2*y1*z3 + x2*y3*z1 + x3*y1*z2 - x3*y2*z1) 
+		    / (x1*y2 - x2*y1 - x1*y3 + x3*y1 + x2*y3 - x3*y2 + u*y1*z2 - u*y2*z1
+		    - v*x1*z2 + v*x2*z1 - u*y1*z3 + u*y3*z1 + v*x1*z3 - v*x3*z1 + u*y2*z3 
+		    - u*y3*z2 - v*x2*z3 + v*x3*z2);
+
+	      if (maxDepth - minDepth > 2) {
+		d = -1;
+	      } else if (d - maxDepth > 0.2) {
+		d = maxDepth;
+	      } else if (d - minDepth < -0.2) {
+		d = minDepth;
+	      }
+	    } 
+
+	    if(d>0)
+	    {
+		mvDepth[i] = d;
+		mvuRight[i] = kpU.pt.x-mbf/d;
+	    }
+	}	
+    }
+    else
+      return;
 }
 
 cv::Mat Frame::UnprojectStereo(const int &i)

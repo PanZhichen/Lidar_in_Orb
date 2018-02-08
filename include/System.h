@@ -40,6 +40,11 @@
 // for map file io
 #include <fstream>
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/kdtree/kdtree_flann.h>
+
 namespace ORB_SLAM2
 {
 
@@ -79,7 +84,7 @@ public:
     // Proccess the given monocular frame
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackMonocular(const cv::Mat &im, const cv::Mat &depth, const double &timestamp);
+    cv::Mat TrackMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp);
 
     // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();
