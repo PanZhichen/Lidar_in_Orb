@@ -173,6 +173,7 @@ public:
 
     // Camera pose.
     cv::Mat mTcw;
+    cv::Mat mTcw_last;
 
     // Current and Next Frame id.
     static long unsigned int nNextId;

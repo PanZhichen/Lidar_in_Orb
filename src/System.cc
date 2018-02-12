@@ -243,62 +243,65 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
 
 cv::Mat System::TrackMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp)
 {
-    if(mSensor!=MONOCULAR)
-    {
-        cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
-        exit(-1);
-    }
-
-    // Check mode change
-    {
-        unique_lock<mutex> lock(mMutexMode);
-        if(mbActivateLocalizationMode)
-        {
-            mpLocalMapper->RequestStop();
-
-            // Wait until Local Mapping has effectively stopped
-            while(!mpLocalMapper->isStopped())
-            {
-                std::this_thread::sleep_for(std::chrono::microseconds(1000));
-            }
-
-            mpTracker->InformOnlyTracking(true);
-            mbActivateLocalizationMode = false;
-        }
-        if(mbDeactivateLocalizationMode)
-        {
-            mpTracker->InformOnlyTracking(false);
-            mpLocalMapper->Release();
-            mbDeactivateLocalizationMode = false;
-        }
-    }
-
-    // Check reset
-    {
-    unique_lock<mutex> lock(mMutexReset);
-    if(mbReset)
-    {
-        mpTracker->Reset();
-        mbReset = false;
-    }
-    }
-
     cv::Mat Tcw;
-    if(depth->empty()){
+    if(depth->points.size()<100){
+      std::cout<<"\033[31m SYSTEM FAILED : Do Not Have Enough Points!!!"<<"\033[0m"<<std::endl;
       Tcw = cv::Mat::eye(4,4,CV_32F);
-      Tcw.at<float>(0,0)=99.555;
-      Tcw.at<float>(0,1)=99.555;
+      Tcw.at<float>(0,0)=99;
+      Tcw.at<float>(0,1)=99;
+      return Tcw;
     }
-    else{
-      Tcw = mpTracker->GrabImageMonocular(im,depth,timestamp);
+    else
+    {
+	if(mSensor!=MONOCULAR)
+	{
+	    cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
+	    exit(-1);
+	}
+
+	// Check mode change
+	{
+	    unique_lock<mutex> lock(mMutexMode);
+	    if(mbActivateLocalizationMode)
+	    {
+		mpLocalMapper->RequestStop();
+
+		// Wait until Local Mapping has effectively stopped
+		while(!mpLocalMapper->isStopped())
+		{
+		    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+		}
+
+		mpTracker->InformOnlyTracking(true);
+		mbActivateLocalizationMode = false;
+	    }
+	    if(mbDeactivateLocalizationMode)
+	    {
+		mpTracker->InformOnlyTracking(false);
+		mpLocalMapper->Release();
+		mbDeactivateLocalizationMode = false;
+	    }
+	}
+
+	// Check reset
+	{
+	unique_lock<mutex> lock(mMutexReset);
+	if(mbReset)
+	{
+	    mpTracker->Reset();
+	    mbReset = false;
+	}
+	}
+
+	Tcw = mpTracker->GrabImageMonocular(im,depth,timestamp);
+
+	unique_lock<mutex> lock2(mMutexState);
+	mTrackingState = mpTracker->mState;
+	mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
+	mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+
+	return Tcw;
     }
-
-    unique_lock<mutex> lock2(mMutexState);
-    mTrackingState = mpTracker->mState;
-    mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
-
-    return Tcw;
 }
 
 void System::ActivateLocalizationMode()

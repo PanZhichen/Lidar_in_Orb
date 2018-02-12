@@ -728,16 +728,16 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
     std::vector<float> pointSearchSqrDis;
     pcl::PointXYZI ips;
     u_int depthCloudNum = DepthCloud->points.size();
-    
+    float PROC_POINT_DIS = 10.0;
     
     if (depthCloudNum > 10) 
     {
 	for (u_int i = 0; i < depthCloudNum; i++) 
 	{
 	    DepthCloud->points[i].intensity = DepthCloud->points[i].z;
-	    DepthCloud->points[i].x *= 10 / DepthCloud->points[i].z;
-	    DepthCloud->points[i].y *= 10 / DepthCloud->points[i].z;
-	    DepthCloud->points[i].z = 10;
+	    DepthCloud->points[i].x *= PROC_POINT_DIS / DepthCloud->points[i].z;
+	    DepthCloud->points[i].y *= PROC_POINT_DIS / DepthCloud->points[i].z;
+	    DepthCloud->points[i].z = PROC_POINT_DIS;
 	}
 	kdTree->setInputCloud(DepthCloud);
         //---------------------------------------------------------------------
@@ -747,7 +747,7 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 	    //const cv::KeyPoint &kp = mvKeys[i];
 	    const cv::KeyPoint &kpU = mvKeysUn[i];
 
-	    float z = 10.0;
+	    float z = PROC_POINT_DIS;
 	    const float u = mvKeysUn[i].pt.x;
             const float v = mvKeysUn[i].pt.y;
             const float x = (u-cx)*z*invfx;
@@ -764,29 +764,29 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 	    if (pointSearchSqrDis[0] < 0.5 && pointSearchInd.size() == 3) 
 	    {
 	      pcl::PointXYZI depthPoint = DepthCloud->points[pointSearchInd[0]];
-	      double x1 = depthPoint.x * depthPoint.intensity / 10;
-	      double y1 = depthPoint.y * depthPoint.intensity / 10;
+	      double x1 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
+	      double y1 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z1 = depthPoint.intensity;
 	      minDepth = z1;
 	      maxDepth = z1;
 
 	      depthPoint = DepthCloud->points[pointSearchInd[1]];
-	      double x2 = depthPoint.x * depthPoint.intensity / 10;
-	      double y2 = depthPoint.y * depthPoint.intensity / 10;
+	      double x2 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
+	      double y2 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z2 = depthPoint.intensity;
 	      minDepth = (z2 < minDepth)? z2 : minDepth;
 	      maxDepth = (z2 > maxDepth)? z2 : maxDepth;
 
 	      depthPoint = DepthCloud->points[pointSearchInd[2]];
-	      double x3 = depthPoint.x * depthPoint.intensity / 10;
-	      double y3 = depthPoint.y * depthPoint.intensity / 10;
+	      double x3 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
+	      double y3 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z3 = depthPoint.intensity;
 	      minDepth = (z3 < minDepth)? z3 : minDepth;
 	      maxDepth = (z3 > maxDepth)? z3 : maxDepth;
 	      //目前只知道该特征点在相机坐标系下的归一化坐标[u,v]（即[X/Z,Y/Z,1]），
 	      //通过计算ipr.s获得对应于该特征点的深度值,即系数Z，则Z*u和Z*v就可获得该特征点在相机坐标系下实际的X,Y,Z坐标
-	      double u = ips.x/10.0;
-	      double v = ips.y/10.0;
+	      double u = ips.x/PROC_POINT_DIS;
+	      double v = ips.y/PROC_POINT_DIS;
 	      d =  (x1*y2*z3 - x1*y3*z2 - x2*y1*z3 + x2*y3*z1 + x3*y1*z2 - x3*y2*z1) 
 		    / (x1*y2 - x2*y1 - x1*y3 + x3*y1 + x2*y3 - x3*y2 + u*y1*z2 - u*y2*z1
 		    - v*x1*z2 + v*x2*z1 - u*y1*z3 + u*y3*z1 + v*x1*z3 - v*x3*z1 + u*y2*z3 
@@ -808,8 +808,12 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 	    }
 	}	
     }
-    else
+    else{
+      std::cout<<"!!!==========================!!!"<<std::endl;
+      std::cout<<"Don't have enough points!!!"<<std::endl;
+      std::cout<<"!!!==========================!!!"<<std::endl;
       return;
+    }
 }
 
 cv::Mat Frame::UnprojectStereo(const int &i)

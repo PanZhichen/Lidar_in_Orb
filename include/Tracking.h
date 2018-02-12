@@ -194,6 +194,8 @@ protected:
 
     //modified at 2018/02/01
     cv::Mat DepthImage;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr DepthPoint;
+    cv::Mat mTcw_last = cv::Mat::eye(4,4,CV_32F);
     
     //New KeyFrame rules (according to fps)
     int mMinFrames;

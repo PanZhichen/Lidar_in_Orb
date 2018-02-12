@@ -251,7 +251,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp)
 {
     mImGray = im;
-    //DepthImage = depth;
+    DepthPoint = depth;
 
     if(mImGray.channels()==3)
     {
@@ -271,11 +271,31 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pc
     //    DepthImage.convertTo(DepthImage,CV_32F,mDepthMapFactor);
 
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
+    {
         mCurrentFrame = Frame(mImGray,depth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
-    else
+	mCurrentFrame.mTcw_last=mTcw_last;
+	u_int depth_NUM = 0;
+	for(int i=0;i<mCurrentFrame.N;i++)
+	{
+	  if(mCurrentFrame.mvDepth[i]>0)
+	    depth_NUM++;
+	}
+	if(depth_NUM<50)
+	{
+	  std::cout<<"\033[31m INITIALIZE FAILED : Less of Depth Information!!"<<"\033[0m"<<std::endl;
+	  mCurrentFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
+	  mCurrentFrame.mTcw.at<float>(0,0)=99;
+	  mCurrentFrame.mTcw.at<float>(0,1)=99;
+	  return mCurrentFrame.mTcw.clone();
+	}
+    }
+    else{
         mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+	mCurrentFrame.mTcw_last=mTcw_last;
+    }
 
     Track();
+    mTcw_last=mCurrentFrame.mTcw;
 
     return mCurrentFrame.mTcw.clone();
 }
@@ -556,7 +576,7 @@ void Tracking::StereoInitialization()
 
         cout << "New map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
-        mpLocalMapper->InsertKeyFrame(pKFini,DepthImage);
+        mpLocalMapper->InsertKeyFrame(pKFini,DepthPoint);
 
         mLastFrame = Frame(mCurrentFrame);
         mnLastKeyFrameId=mCurrentFrame.mnId;
@@ -614,7 +634,7 @@ void Tracking::MonocularInitialization()
 
         cout << "New map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
-        mpLocalMapper->InsertKeyFrame(pKFini,DepthImage);
+        mpLocalMapper->InsertKeyFrame(pKFini,DepthPoint);
 
         mLastFrame = Frame(mCurrentFrame);
         mnLastKeyFrameId=mCurrentFrame.mnId;
@@ -713,8 +733,8 @@ void Tracking::CreateInitialMapMonocular()
         }
     }
 
-    mpLocalMapper->InsertKeyFrame(pKFini,DepthImage);
-    mpLocalMapper->InsertKeyFrame(pKFcur,DepthImage);
+    mpLocalMapper->InsertKeyFrame(pKFini,DepthPoint);
+    mpLocalMapper->InsertKeyFrame(pKFcur,DepthPoint);
 
     mCurrentFrame.SetPose(pKFcur->GetPose());
     mnLastKeyFrameId=mCurrentFrame.mnId;
@@ -1133,7 +1153,7 @@ void Tracking::CreateNewKeyFrame()
         }
     }
 
-    mpLocalMapper->InsertKeyFrame(pKF,DepthImage);
+    mpLocalMapper->InsertKeyFrame(pKF,DepthPoint);
 
     mpLocalMapper->SetNotStop(false);
 

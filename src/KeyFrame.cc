@@ -53,6 +53,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
             mGrid[i][j] = F.mGrid[i][j];
     }
 
+    Tcw_last = F.mTcw_last;
     SetPose(F.mTcw);    
 }
 

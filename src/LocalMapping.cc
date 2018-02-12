@@ -111,12 +111,11 @@ void LocalMapping::Run()
     SetFinish();
 }
 
-void LocalMapping::InsertKeyFrame(KeyFrame *pKF, cv::Mat &Depth)
+void LocalMapping::InsertKeyFrame(KeyFrame *pKF, pcl::PointCloud<pcl::PointXYZI>::Ptr &Depth)
 {
     unique_lock<mutex> lock(mMutexNewKFs);
     mlNewKeyFrames.push_back(pKF);
-    DepthImage=Depth;
-    //std::cout<<DepthImage.at<float>(6,6)<<std::endl;
+    DepthPoint=Depth;
     mbAbortBA=true;
 }
 
@@ -213,12 +212,7 @@ void LocalMapping::CreateNewMapPoints()
     int count_features=0;
     for(int i=0; i<mpCurrentKeyFrame->N; i++)
     {
-	const cv::KeyPoint &kp = mpCurrentKeyFrame->mvKeys[i];
-
-	const float &v = kp.pt.y;
-	const float &u = kp.pt.x;
-
-	const float d = DepthImage.at<float>(v,u);
+	const float d = mpCurrentKeyFrame->mvDepth[i];
 
 	if(d>0){
 	    imDepth_temp[i] = d;
@@ -226,6 +220,107 @@ void LocalMapping::CreateNewMapPoints()
 	    //std::cout<<"depth"<<i<<"="<<imDepth_temp[i]<<"  ";
 	}
     }
+    if(count_features<20)
+    {
+      cv::Mat Rlw = mpCurrentKeyFrame->getTcw_last().rowRange(0,3).colRange(0,3);
+      cv::Mat tlw = mpCurrentKeyFrame->getTcw_last().rowRange(0,3).col(3);
+      cv::Mat Rwl = Rlw.t();
+      cv::Mat twl = -Rwl*tlw;
+
+      cv::Mat Twl = cv::Mat::eye(4,4,Rlw.type());
+      Rwl.copyTo(Twl.rowRange(0,3).colRange(0,3));
+      twl.copyTo(Twl.rowRange(0,3).col(3));
+      cv::Mat T_cl = mpCurrentKeyFrame->getTcw()*Twl;
+      
+      u_int depthCloudNum = DepthPoint->points.size();
+      pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdTree(new pcl::KdTreeFLANN<pcl::PointXYZI>());
+      pcl::PointXYZI ips;
+      std::vector<int> pointSearchInd;
+      std::vector<float> pointSearchSqrDis;
+      const float PROC_POINT_DIS = 10.0;
+      
+      for (u_int i = 0; i < depthCloudNum; i++) 
+	{
+	    cv::Mat p = cv::Mat::zeros(4,1,T_cl.type());
+	    p.at<float>(0,0) = DepthPoint->points[i].x;
+	    p.at<float>(1,0) = DepthPoint->points[i].y;
+	    p.at<float>(2,0) = DepthPoint->points[i].z;
+	    p.at<float>(3,0) = 1;
+	    cv::Mat p_aft = T_cl * p;
+	    DepthPoint->points[i].intensity = p_aft.at<float>(2,0);
+	    DepthPoint->points[i].x = p_aft.at<float>(0,0) * PROC_POINT_DIS / p_aft.at<float>(2,0);
+	    DepthPoint->points[i].y = p_aft.at<float>(1,0) * PROC_POINT_DIS / p_aft.at<float>(2,0);
+	    DepthPoint->points[i].z = PROC_POINT_DIS;
+	}
+	
+      kdTree->setInputCloud(DepthPoint);
+
+      for(int i=0; i<mpCurrentKeyFrame->N; i++)
+      {
+	  //const cv::KeyPoint &kp = mvKeys[i];
+	  const cv::KeyPoint &kpU = mpCurrentKeyFrame->mvKeysUn[i];
+
+	  float z = PROC_POINT_DIS;
+	  const float u = kpU.pt.x;
+	  const float v = kpU.pt.y;
+	  const float x = (u-mpCurrentKeyFrame->cx)*z*mpCurrentKeyFrame->invfx;
+	  const float y = (v-mpCurrentKeyFrame->cy)*z*mpCurrentKeyFrame->invfy;
+	  
+	  ips.x = x;
+	  ips.y = y;
+	  ips.z = z;
+	  
+	  kdTree->nearestKSearch(ips, 3, pointSearchInd, pointSearchSqrDis);
+
+	  double minDepth, maxDepth;
+	  float d=-1;
+	  if (pointSearchSqrDis[0] < 0.5 && pointSearchInd.size() == 3) 
+	  {
+	    pcl::PointXYZI depthPoint = DepthPoint->points[pointSearchInd[0]];
+	    double x1 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
+	    double y1 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
+	    double z1 = depthPoint.intensity;
+	    minDepth = z1;
+	    maxDepth = z1;
+
+	    depthPoint = DepthPoint->points[pointSearchInd[1]];
+	    double x2 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
+	    double y2 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
+	    double z2 = depthPoint.intensity;
+	    minDepth = (z2 < minDepth)? z2 : minDepth;
+	    maxDepth = (z2 > maxDepth)? z2 : maxDepth;
+
+	    depthPoint = DepthPoint->points[pointSearchInd[2]];
+	    double x3 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
+	    double y3 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
+	    double z3 = depthPoint.intensity;
+	    minDepth = (z3 < minDepth)? z3 : minDepth;
+	    maxDepth = (z3 > maxDepth)? z3 : maxDepth;
+	    //目前只知道该特征点在相机坐标系下的归一化坐标[u,v]（即[X/Z,Y/Z,1]），
+	    //通过计算ipr.s获得对应于该特征点的深度值,即系数Z，则Z*u和Z*v就可获得该特征点在相机坐标系下实际的X,Y,Z坐标
+	    double u = ips.x/PROC_POINT_DIS;
+	    double v = ips.y/PROC_POINT_DIS;
+	    d =  (x1*y2*z3 - x1*y3*z2 - x2*y1*z3 + x2*y3*z1 + x3*y1*z2 - x3*y2*z1) 
+		  / (x1*y2 - x2*y1 - x1*y3 + x3*y1 + x2*y3 - x3*y2 + u*y1*z2 - u*y2*z1
+		  - v*x1*z2 + v*x2*z1 - u*y1*z3 + u*y3*z1 + v*x1*z3 - v*x3*z1 + u*y2*z3 
+		  - u*y3*z2 - v*x2*z3 + v*x3*z2);
+
+	    if (maxDepth - minDepth > 2) {
+	      d = -1;
+	    } else if (d - maxDepth > 0.2) {
+	      d = maxDepth;
+	    } else if (d - minDepth < -0.2) {
+	      d = minDepth;
+	    }
+	  } 
+
+	  if(d>0)
+	  {
+	      imDepth_temp[i] = d;
+	  }
+      }
+    }
+    
     //std::cout<<"total"<<mpCurrentKeyFrame->N<<"   depth"<<count_features<<std::endl;
     //***********************************************************//
   

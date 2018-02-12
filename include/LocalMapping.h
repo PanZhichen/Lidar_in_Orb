@@ -29,6 +29,11 @@
 
 #include <mutex>
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/kdtree/kdtree_flann.h>
+
 
 namespace ORB_SLAM2
 {
@@ -49,7 +54,7 @@ public:
     // Main function
     void Run();
 
-    void InsertKeyFrame(KeyFrame* pKF, cv::Mat &Depth);
+    void InsertKeyFrame(KeyFrame* pKF, pcl::PointCloud<pcl::PointXYZI>::Ptr &Depth);
 
     // Thread Synch
     void RequestStop();
@@ -89,6 +94,7 @@ protected:
     
     //modified at 2018/02/01
     cv::Mat DepthImage;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr DepthPoint;
 
     bool mbMonocular;
 

@@ -48,6 +48,14 @@ public:
     cv::Mat getTwc() const{
       return Twc;
     }
+    
+    cv::Mat getTcw() const{
+      return Tcw;
+    }
+    
+    cv::Mat getTcw_last() const{
+      return Tcw_last;
+    }
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
@@ -209,6 +217,7 @@ protected:
     cv::Mat Tcw;
     cv::Mat Twc;
     cv::Mat Ow;
+    cv::Mat Tcw_last;
 
     cv::Mat Cw; // Stereo middel point. Only for visualization
 
