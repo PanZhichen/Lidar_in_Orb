@@ -248,7 +248,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp)
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp, bool Refresh_DepthCloud)
 {
     mImGray = im;
     DepthPoint = depth;
@@ -295,7 +295,9 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pc
     }
 
     Track();
-    mTcw_last=mCurrentFrame.mTcw;
+    if(Refresh_DepthCloud){
+      mTcw_last=mCurrentFrame.mTcw;
+    }
 
     return mCurrentFrame.mTcw.clone();
 }

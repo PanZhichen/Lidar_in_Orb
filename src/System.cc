@@ -241,7 +241,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
     return Tcw;
 }
 
-cv::Mat System::TrackMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp)
+cv::Mat System::TrackMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp, bool Refresh_DepthCloud)
 {
     cv::Mat Tcw;
     if(depth->points.size()<100){
@@ -293,7 +293,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::Poi
 	}
 	}
 
-	Tcw = mpTracker->GrabImageMonocular(im,depth,timestamp);
+	Tcw = mpTracker->GrabImageMonocular(im,depth,timestamp,Refresh_DepthCloud);
 
 	unique_lock<mutex> lock2(mMutexState);
 	mTrackingState = mpTracker->mState;
