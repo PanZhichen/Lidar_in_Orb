@@ -246,6 +246,8 @@ void LocalMapping::CreateNewMapPoints()
 	std::vector<int> pointSearchInd;
 	std::vector<float> pointSearchSqrDis;
 	const float PROC_POINT_DIS = 10.0;
+	pcl::PointCloud<pcl::PointXYZI>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::PointXYZI temp_point;
 	
 	for (u_int i = 0; i < depthCloudNum; i++) 
 	  {
@@ -255,13 +257,14 @@ void LocalMapping::CreateNewMapPoints()
 	      p.at<float>(2,0) = DepthPoint->points[i].z;
 	      p.at<float>(3,0) = 1;
 	      cv::Mat p_aft = T_cl * p;
-	      DepthPoint->points[i].intensity = p_aft.at<float>(2,0);
-	      DepthPoint->points[i].x = p_aft.at<float>(0,0) * PROC_POINT_DIS / p_aft.at<float>(2,0);
-	      DepthPoint->points[i].y = p_aft.at<float>(1,0) * PROC_POINT_DIS / p_aft.at<float>(2,0);
-	      DepthPoint->points[i].z = PROC_POINT_DIS;
+	      temp_point.intensity = p_aft.at<float>(2,0);
+	      temp_point.x = p_aft.at<float>(0,0) * PROC_POINT_DIS / p_aft.at<float>(2,0);
+	      temp_point.y = p_aft.at<float>(1,0) * PROC_POINT_DIS / p_aft.at<float>(2,0);
+	      temp_point.z = PROC_POINT_DIS;
+	      tempCloud->push_back(temp_point);
 	  }
 	  
-	kdTree->setInputCloud(DepthPoint);
+	kdTree->setInputCloud(tempCloud);
 
 	for(int i=0; i<mpCurrentKeyFrame->N; i++)
 	{
@@ -284,21 +287,21 @@ void LocalMapping::CreateNewMapPoints()
 	    float d=-1;
 	    if (pointSearchSqrDis[0] < 0.5 && pointSearchInd.size() == 3) 
 	    {
-	      pcl::PointXYZI depthPoint = DepthPoint->points[pointSearchInd[0]];
+	      pcl::PointXYZI depthPoint = tempCloud->points[pointSearchInd[0]];
 	      double x1 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
 	      double y1 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z1 = depthPoint.intensity;
 	      minDepth = z1;
 	      maxDepth = z1;
 
-	      depthPoint = DepthPoint->points[pointSearchInd[1]];
+	      depthPoint = tempCloud->points[pointSearchInd[1]];
 	      double x2 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
 	      double y2 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z2 = depthPoint.intensity;
 	      minDepth = (z2 < minDepth)? z2 : minDepth;
 	      maxDepth = (z2 > maxDepth)? z2 : maxDepth;
 
-	      depthPoint = DepthPoint->points[pointSearchInd[2]];
+	      depthPoint = tempCloud->points[pointSearchInd[2]];
 	      double x3 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
 	      double y3 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z3 = depthPoint.intensity;
@@ -325,7 +328,7 @@ void LocalMapping::CreateNewMapPoints()
 	    if(d>0)
 	    {
 		imDepth_temp[i] = d;
-		count_features++;
+		//count_features++;
 	    }
 	}
 	//std::cout<<"total="<<mpCurrentKeyFrame->N<<"   depth="<<count_features<<std::endl;
@@ -607,6 +610,42 @@ void LocalMapping::CreateNewMapPoints()
         }
         //Output total number of ORB fratures needed to be triangulated and how many features can be matched with depth value in depth image directly.
         //std::cout<<"nmatches="<<nmatches<<"  count_depth"<<count_depth<<std::endl;
+    }
+   
+   //std::cout<<"\033[31m nnew="<<nnew<<"\033[0m"<<std::endl;
+   if(nnew<5)
+   {
+      std::cout<<"\033[31m Less of New Map Points!!"<<"\033[0m"<<std::endl;
+      for(int idx=0;idx<mpCurrentKeyFrame->N;idx++)
+      {
+	if(imDepth_temp[idx]>0)
+	    {
+	        const float z = imDepth_temp[idx];
+		const cv::KeyPoint &kp1 = mpCurrentKeyFrame->mvKeysUn[idx];
+
+		const float u = kp1.pt.x;//modified at 2018/02/01, mvKeys->mvKeysUn
+		const float v = kp1.pt.y;//modified at 2018/02/01, mvKeys->mvKeysUn
+		const float x = (u-mpCurrentKeyFrame->cx)*z*mpCurrentKeyFrame->invfx;
+		const float y = (v-mpCurrentKeyFrame->cy)*z*mpCurrentKeyFrame->invfy;
+		cv::Mat x3Dc = (cv::Mat_<float>(3,1) << x, y, z);
+
+		cv::Mat Twc = mpCurrentKeyFrame->getTwc();
+		cv::Mat x3Dd = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
+		
+		MapPoint* pMP = new MapPoint(x3Dd,mpCurrentKeyFrame,mpMap);
+
+		pMP->AddObservation(mpCurrentKeyFrame,idx);            
+
+		mpCurrentKeyFrame->AddMapPoint(pMP,idx);
+
+		pMP->ComputeDistinctiveDescriptors();
+
+		pMP->UpdateNormalAndDepth();
+
+		mpMap->AddMapPoint(pMP);
+		mlpRecentAddedMapPoints.push_back(pMP);
+	    }
+      }
     }
 }
 

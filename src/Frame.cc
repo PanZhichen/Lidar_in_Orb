@@ -729,17 +729,20 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
     pcl::PointXYZI ips;
     u_int depthCloudNum = DepthCloud->points.size();
     float PROC_POINT_DIS = 10.0;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZI>());
+    pcl::PointXYZI temp_point;
     
     if (depthCloudNum > 10) 
     {
 	for (u_int i = 0; i < depthCloudNum; i++) 
 	{
-	    DepthCloud->points[i].intensity = DepthCloud->points[i].z;
-	    DepthCloud->points[i].x *= PROC_POINT_DIS / DepthCloud->points[i].z;
-	    DepthCloud->points[i].y *= PROC_POINT_DIS / DepthCloud->points[i].z;
-	    DepthCloud->points[i].z = PROC_POINT_DIS;
+	    temp_point.intensity = DepthCloud->points[i].z;
+	    temp_point.x = DepthCloud->points[i].x * PROC_POINT_DIS / DepthCloud->points[i].z;
+	    temp_point.y = DepthCloud->points[i].y * PROC_POINT_DIS / DepthCloud->points[i].z;
+	    temp_point.z = PROC_POINT_DIS;
+	    tempCloud->push_back(temp_point);
 	}
-	kdTree->setInputCloud(DepthCloud);
+	kdTree->setInputCloud(tempCloud);
         //---------------------------------------------------------------------
 	
 	for(int i=0; i<N; i++)
@@ -763,21 +766,21 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 	    float d=-1;
 	    if (pointSearchSqrDis[0] < 0.5 && pointSearchInd.size() == 3) 
 	    {
-	      pcl::PointXYZI depthPoint = DepthCloud->points[pointSearchInd[0]];
+	      pcl::PointXYZI depthPoint = tempCloud->points[pointSearchInd[0]];
 	      double x1 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
 	      double y1 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z1 = depthPoint.intensity;
 	      minDepth = z1;
 	      maxDepth = z1;
 
-	      depthPoint = DepthCloud->points[pointSearchInd[1]];
+	      depthPoint = tempCloud->points[pointSearchInd[1]];
 	      double x2 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
 	      double y2 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z2 = depthPoint.intensity;
 	      minDepth = (z2 < minDepth)? z2 : minDepth;
 	      maxDepth = (z2 > maxDepth)? z2 : maxDepth;
 
-	      depthPoint = DepthCloud->points[pointSearchInd[2]];
+	      depthPoint = tempCloud->points[pointSearchInd[2]];
 	      double x3 = depthPoint.x * depthPoint.intensity / PROC_POINT_DIS;
 	      double y3 = depthPoint.y * depthPoint.intensity / PROC_POINT_DIS;
 	      double z3 = depthPoint.intensity;
