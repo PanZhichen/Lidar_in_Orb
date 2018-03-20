@@ -332,6 +332,7 @@ void Tracking::Track()
         bool bOK;
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
+	//当有地图数据成功读取的时候，mbOnlyTracking=true,此时只进行localization，且不添加新的关键帧
         if(!mbOnlyTracking)
         {
             // Local Mapping is activated. This is the normal behaviour, unless

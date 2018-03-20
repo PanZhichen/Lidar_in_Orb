@@ -22,6 +22,9 @@
 #include "Converter.h"
 #include "ORBmatcher.h"
 #include <thread>
+#include <pcl/io/pcd_io.h>
+#include <iostream>
+#include <sstream>
 
 namespace ORB_SLAM2
 {
@@ -731,6 +734,13 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
     float PROC_POINT_DIS = 10.0;
     pcl::PointCloud<pcl::PointXYZI>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZI>());
     pcl::PointXYZI temp_point;
+    
+    string path = "/home/nrsl/orb_ws/PointCloud";
+    static uint countPC = 0;
+    countPC++;
+    ostringstream oss;
+    oss << path << countPC << ".pcd";
+    pcl::io::savePCDFileASCII (oss.str(), *DepthCloud);
     
     if (depthCloudNum > 10) 
     {
