@@ -726,6 +726,7 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 {
     mvuRight = vector<float>(N,-1);
     mvDepth = vector<float>(N,-1);
+    vector<int> judge_init;
     pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdTree(new pcl::KdTreeFLANN<pcl::PointXYZI>());
     std::vector<int> pointSearchInd;
     std::vector<float> pointSearchSqrDis;
@@ -761,8 +762,8 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 	    const cv::KeyPoint &kpU = mvKeysUn[i];
 
 	    float z = PROC_POINT_DIS;
-	    const float u = mvKeysUn[i].pt.x;
-            const float v = mvKeysUn[i].pt.y;
+	    const float u = kpU.pt.x;
+            const float v = kpU.pt.y;
             const float x = (u-cx)*z*invfx;
             const float y = (v-cy)*z*invfy;
 	    
@@ -818,8 +819,29 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 	    {
 		mvDepth[i] = d;
 		mvuRight[i] = kpU.pt.x-mbf/d;
+		judge_init.push_back(i);
+		
+		//std::cout<<"["<<i<<"]="<<mvDepth[i]<<"||"<<mvuRight[i]<<"||="<<maxDepth<<"||="<<minDepth<<std::endl;
 	    }
-	}	
+	}
+	for(uint n=0;n<judge_init.size();n++){
+	  
+	  int i = judge_init[n];
+	  float d = mvDepth[i];
+	  uint count_same=0;
+	  
+	  for(uint nn=i+1;nn<mvDepth.size();nn++){
+	    
+	    if(d == mvDepth[nn])
+	      count_same++;
+	    }
+	  
+	  if(count_same>200){
+	      mvDepth.clear();
+	      mvDepth = vector<float>(N,-1);
+	      break;
+	  }
+	}
     }
     else{
       std::cout<<"!!!==========================!!!"<<std::endl;

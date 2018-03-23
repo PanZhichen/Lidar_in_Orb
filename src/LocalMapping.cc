@@ -209,7 +209,6 @@ void LocalMapping::CreateNewMapPoints()
 {
     //************************************************************//
     vector<float> imDepth_temp = vector<float>(mpCurrentKeyFrame->N,-1);
-    int count_features=0;
     static bool INITIALIZED = false;
     if(!INITIALIZED)
     {
@@ -227,7 +226,6 @@ void LocalMapping::CreateNewMapPoints()
     }
     else
     {
-      count_features=0;
       cv::Mat Rlw = mpCurrentKeyFrame->getTcw_last().rowRange(0,3).colRange(0,3);
       cv::Mat tlw = mpCurrentKeyFrame->getTcw_last().rowRange(0,3).col(3);
       cv::Mat Rwl = Rlw.t();
@@ -417,8 +415,8 @@ void LocalMapping::CreateNewMapPoints()
 
         // Triangulate each match
         const int nmatches = vMatchedIndices.size();
-	static int count_depth;
-	count_depth=0;
+	//int count_depth;
+	//count_depth=0;
         for(int ikp=0; ikp<nmatches; ikp++)
         {
             cv::Mat x3D;
@@ -448,8 +446,7 @@ void LocalMapping::CreateNewMapPoints()
 
 		    cv::Mat Twc = mpCurrentKeyFrame->getTwc();
 		    x3D = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
-		    count_depth++;
-		    //std::cout<<x3D<<std::endl;
+		    //count_depth++;
 		}
 	    }
 	    else
@@ -615,37 +612,90 @@ void LocalMapping::CreateNewMapPoints()
    //std::cout<<"\033[31m nnew="<<nnew<<"\033[0m"<<std::endl;
    if(nnew<5)
    {
-      std::cout<<"\033[31m Less of New Map Points!!"<<"\033[0m"<<std::endl;
-      for(int idx=0;idx<mpCurrentKeyFrame->N;idx++)
+      std::cout<<"\033[31m Lack of New Map Points!! Add "<<"\033[0m";
+      vector<bool> record_depth = vector<bool>(mpCurrentKeyFrame->N,false);
+      uint count_nnnew=0;
+/*       for(size_t i=0; i<vpNeighKFs.size(); i++){
+// 	
+// 	vector<MapPoint *> vMapPointMatched;
+// 	vector<pair<size_t,size_t> > vMatchedInd;
+// 	int nn=matcher.SearchKeyFrameByBoW(mpCurrentKeyFrame,vpNeighKFs[i],vMapPointMatched,vMatchedInd);
+// 	std::cout<<"\033[31m"<<"vMatchedInd="<<nn<<"\033[0m"<<std::endl;
+// 	
+// 	for(uint idx=0;idx<vMatchedInd.size();idx++){
+// 	  
+// 	  int idx1 = vMatchedInd[idx].first;
+// 	  int idx2 = vMatchedInd[idx].second;
+// 	  record_depth[idx1] = true;
+// 	  
+// 	  if(imDepth_temp[idx1]>0){
+// 	      
+// 	      const cv::KeyPoint &kp1 = mpCurrentKeyFrame->mvKeysUn[idx1];
+// 	      const float z = imDepth_temp[idx1];
+// 	      const float u = kp1.pt.x;//modified at 2018/02/01, mvKeys->mvKeysUn
+// 	      const float v = kp1.pt.y;//modified at 2018/02/01, mvKeys->mvKeysUn
+// 	      const float x = (u-mpCurrentKeyFrame->cx)*z*mpCurrentKeyFrame->invfx;
+// 	      const float y = (v-mpCurrentKeyFrame->cy)*z*mpCurrentKeyFrame->invfy;
+// 	      cv::Mat x3Dc = (cv::Mat_<float>(3,1) << x, y, z);
+// 
+// 	      cv::Mat Twc = mpCurrentKeyFrame->getTwc();
+// 	      cv::Mat x3Dd = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
+// 	      
+// 	      MapPoint* pMP = new MapPoint(x3Dd,mpCurrentKeyFrame,mpMap);
+// 
+// 	      pMP->AddObservation(mpCurrentKeyFrame,idx1);            
+// 	      pMP->AddObservation(vpNeighKFs[i],idx2);
+// 
+// 	      mpCurrentKeyFrame->AddMapPoint(pMP,idx1);
+// 	      vpNeighKFs[i]->AddMapPoint(pMP,idx2);
+// 
+// 	      pMP->ComputeDistinctiveDescriptors();
+// 
+// 	      pMP->UpdateNormalAndDepth();
+// 
+// 	      mpMap->AddMapPoint(pMP);
+// 	      mlpRecentAddedMapPoints.push_back(pMP);
+// 	      //count_new++;
+// 
+// 	  }
+// 	}
+//     }
+*/
+    for(uint idx=0;idx<record_depth.size();idx++)
       {
-	if(imDepth_temp[idx]>0)
-	    {
-	        const float z = imDepth_temp[idx];
-		const cv::KeyPoint &kp1 = mpCurrentKeyFrame->mvKeysUn[idx];
+	if(!record_depth[idx])
+	{
+	  if(imDepth_temp[idx]>0)
+	      {
+		  const float z = imDepth_temp[idx];
+		  const cv::KeyPoint &kp1 = mpCurrentKeyFrame->mvKeysUn[idx];
 
-		const float u = kp1.pt.x;//modified at 2018/02/01, mvKeys->mvKeysUn
-		const float v = kp1.pt.y;//modified at 2018/02/01, mvKeys->mvKeysUn
-		const float x = (u-mpCurrentKeyFrame->cx)*z*mpCurrentKeyFrame->invfx;
-		const float y = (v-mpCurrentKeyFrame->cy)*z*mpCurrentKeyFrame->invfy;
-		cv::Mat x3Dc = (cv::Mat_<float>(3,1) << x, y, z);
+		  const float u = kp1.pt.x;//modified at 2018/02/01, mvKeys->mvKeysUn
+		  const float v = kp1.pt.y;//modified at 2018/02/01, mvKeys->mvKeysUn
+		  const float x = (u-mpCurrentKeyFrame->cx)*z*mpCurrentKeyFrame->invfx;
+		  const float y = (v-mpCurrentKeyFrame->cy)*z*mpCurrentKeyFrame->invfy;
+		  cv::Mat x3Dc = (cv::Mat_<float>(3,1) << x, y, z);
 
-		cv::Mat Twc = mpCurrentKeyFrame->getTwc();
-		cv::Mat x3Dd = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
-		
-		MapPoint* pMP = new MapPoint(x3Dd,mpCurrentKeyFrame,mpMap);
+		  cv::Mat Twc = mpCurrentKeyFrame->getTwc();
+		  cv::Mat x3Dd = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
+		  
+		  MapPoint* pMP = new MapPoint(x3Dd,mpCurrentKeyFrame,mpMap);
 
-		pMP->AddObservation(mpCurrentKeyFrame,idx);            
+		  pMP->AddObservation(mpCurrentKeyFrame,idx);            
 
-		mpCurrentKeyFrame->AddMapPoint(pMP,idx);
+		  mpCurrentKeyFrame->AddMapPoint(pMP,idx);
 
-		pMP->ComputeDistinctiveDescriptors();
+		  pMP->ComputeDistinctiveDescriptors();
 
-		pMP->UpdateNormalAndDepth();
+		  pMP->UpdateNormalAndDepth();
 
-		mpMap->AddMapPoint(pMP);
-		mlpRecentAddedMapPoints.push_back(pMP);
-	    }
+		  mpMap->AddMapPoint(pMP);
+		  mlpRecentAddedMapPoints.push_back(pMP);
+		  count_nnnew++;
+	      }
+	}
       }
+    std::cout<<" "<<count_nnnew<<" "<<"\033[31m New MapPoints from CurrentKeyFrame!!"<<" \033[0m"<<std::endl;
     }
 }
 

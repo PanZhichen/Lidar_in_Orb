@@ -280,7 +280,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pc
 	  if(mCurrentFrame.mvDepth[i]>0)
 	    depth_NUM++;
 	}
-	if(depth_NUM<50)
+	if(depth_NUM<300)
 	{
 	  std::cout<<"\033[31m INITIALIZE FAILED : Less of Depth Information!!"<<"\033[0m"<<std::endl;
 	  mCurrentFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
