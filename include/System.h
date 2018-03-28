@@ -35,6 +35,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+#include "KeyFrame.h"
 
 #include "BoostArchiver.h"
 // for map file io
@@ -125,6 +126,16 @@ public:
     int GetTrackingState();
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+    
+    long unsigned int getNumKeyFrames()
+    {
+      return mpMap->KeyFramesInMap();
+    }
+    
+    KeyFrame* getNewestKeyFrame()
+    {
+      return mpMap->NewestKeyFrame;
+    }
 
 private:
     // Save/Load functions

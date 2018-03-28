@@ -821,7 +821,8 @@ void Frame::ComputeStereoFromPointCloud(const pcl::PointCloud< pcl::PointXYZI >:
 		mvuRight[i] = kpU.pt.x-mbf/d;
 		judge_init.push_back(i);
 		
-		//std::cout<<"["<<i<<"]="<<mvDepth[i]<<"||"<<mvuRight[i]<<"||="<<maxDepth<<"||="<<minDepth<<std::endl;
+// 		if(fabs(x/z*d)<0.1 && fabs(y/z*d)<0.1)
+// 		   std::cout<<"["<<i<<"] = "<<x/z*d<<" || "<<y/z*d<<" || "<<d<<" || "<<mvuRight[i]<<" || "<<kpU.pt.x<<std::endl;
 	    }
 	}
 	for(uint n=0;n<judge_init.size();n++){

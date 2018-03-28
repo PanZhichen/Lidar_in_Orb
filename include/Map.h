@@ -52,6 +52,12 @@ public:
     std::vector<KeyFrame*> GetAllKeyFrames();
     std::vector<MapPoint*> GetAllMapPoints();
     std::vector<MapPoint*> GetReferenceMapPoints();
+    
+//     KeyFrame* NewestKeyFrame()
+//     {
+//       return *(--mspKeyFrames.end());
+//     }
+    KeyFrame* NewestKeyFrame;
 
     long unsigned int MapPointsInMap();
     long unsigned  KeyFramesInMap();

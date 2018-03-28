@@ -166,6 +166,7 @@ void LocalMapping::ProcessNewKeyFrame()
 
     // Insert Keyframe in Map
     mpMap->AddKeyFrame(mpCurrentKeyFrame);
+//     std::cout<<"\033[33m KeyFramesID="<<mpCurrentKeyFrame->mnId<<"\033[0m"<<std::endl;
 }
 
 void LocalMapping::MapPointCulling()
@@ -366,6 +367,7 @@ void LocalMapping::CreateNewMapPoints()
     int nnew=0;
 
     // Search matches with epipolar restriction and triangulate
+    uint total_features=0, feature_frome_depth=0;
     for(size_t i=0; i<vpNeighKFs.size(); i++)
     {
         if(i>0 && CheckNewKeyFrames())
@@ -415,8 +417,8 @@ void LocalMapping::CreateNewMapPoints()
 
         // Triangulate each match
         const int nmatches = vMatchedIndices.size();
-	//int count_depth;
-	//count_depth=0;
+	total_features+=nmatches;
+	
         for(int ikp=0; ikp<nmatches; ikp++)
         {
             cv::Mat x3D;
@@ -446,7 +448,7 @@ void LocalMapping::CreateNewMapPoints()
 
 		    cv::Mat Twc = mpCurrentKeyFrame->getTwc();
 		    x3D = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
-		    //count_depth++;
+		    feature_frome_depth++;
 		}
 	    }
 	    else
@@ -586,7 +588,7 @@ void LocalMapping::CreateNewMapPoints()
 		  continue;
 	    }
 	    //*****************************************************************************************
-            
+
             // Triangulation is succesfull
             MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap);
 
@@ -609,7 +611,12 @@ void LocalMapping::CreateNewMapPoints()
         //std::cout<<"nmatches="<<nmatches<<"  count_depth"<<count_depth<<std::endl;
     }
    
-   //std::cout<<"\033[31m nnew="<<nnew<<"\033[0m"<<std::endl;
+   if(feature_frome_depth==total_features){
+     std::cout<<"\033[37m There are "<<"\033[0m"<<"100%"<<"\033[37m feature depth comes from PointCloud"<<" \033[0m"<<std::endl;
+  }else{
+     std::cout<<"\033[37m There are "<<"\033[0m"<<int(100.0*feature_frome_depth/total_features)<<"%"<<"\033[37m feature depth comes from PointCloud"<<" \033[0m"<<std::endl;
+  }
+   
    if(nnew<5)
    {
       std::cout<<"\033[31m Lack of New Map Points!! Add "<<"\033[0m";
@@ -678,7 +685,15 @@ void LocalMapping::CreateNewMapPoints()
 
 		  cv::Mat Twc = mpCurrentKeyFrame->getTwc();
 		  cv::Mat x3Dd = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
-		  
+		  	  
+		  //------------------------------------------------------------
+// 		  float m_x=x3Dd.at<float>(0,0);
+// 		  float m_y=x3Dd.at<float>(0,1);
+// 		  float m_z=x3Dd.at<float>(0,2);
+// 		  if(fabs(m_x)<0.1 && fabs(m_y)<0.1)
+// 		      std::cout<<"["<<idx<<"] = "<<m_x<<" || "<<m_y<<" || "<<m_z<<std::endl;
+		  //------------------------------------------------------------
+	      
 		  MapPoint* pMP = new MapPoint(x3Dd,mpCurrentKeyFrame,mpMap);
 
 		  pMP->AddObservation(mpCurrentKeyFrame,idx);            

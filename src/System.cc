@@ -440,6 +440,7 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
         KeyFrame* pKF = vpKFs[i];
 
        // pKF->SetPose(pKF->GetPose()*Two);
+	//cout << "[" <<pKF->mnId<< "]  " ;
 
         if(pKF->isBad())
             continue;
@@ -447,7 +448,7 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
         cv::Mat R = pKF->GetRotation().t();
         vector<float> q = Converter::toQuaternion(R);
         cv::Mat t = pKF->GetCameraCenter();
-        f << setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
+        f <<pKF->mnId<<" "<< setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
           << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
 
     }

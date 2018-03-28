@@ -613,6 +613,8 @@ void Tracking::MonocularInitialization()
 
         // Insert KeyFrame in the map
         mpMap->AddKeyFrame(pKFini);
+	mpMap->NewestKeyFrame = pKFini;
+	//std::cout<<"\033[33m KeyFramesID="<<pKFini->mnId<<"\033[0m"<<std::endl;
 
         // Create MapPoints and asscoiate to KeyFrame
         for(int i=0; i<mCurrentFrame.N;i++)
@@ -1090,6 +1092,7 @@ void Tracking::CreateNewKeyFrame()
         return;
 
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+    mpMap->NewestKeyFrame = pKF;
 
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;
