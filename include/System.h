@@ -136,6 +136,13 @@ public:
     {
       return mpMap->NewestKeyFrame;
     }
+          
+    uint getLoopNum();
+    
+    vector<KeyFrame*> getAllKeyFrames()
+    {
+	return mpMap->GetAllKeyFrames();
+    }
 
 private:
     // Save/Load functions

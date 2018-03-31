@@ -573,5 +573,10 @@ bool System::LoadMap(const string &filename)
     in.close();
     return true;
 }
+uint System::getLoopNum()
+{
+    return mpLoopCloser->DETECT_LOOP;
+}
+
 
 } //namespace ORB_SLAM

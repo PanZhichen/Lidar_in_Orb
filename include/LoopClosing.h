@@ -79,6 +79,8 @@ public:
     void RequestFinish();
 
     bool isFinished();
+    
+    uint DETECT_LOOP = 0;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

@@ -741,6 +741,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
             mpLocalMapper->Release();
 
             cout << "Map updated!" << endl;
+	    DETECT_LOOP ++;
         }
 
         mbFinishedGBA = true;
