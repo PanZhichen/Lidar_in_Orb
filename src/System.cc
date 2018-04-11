@@ -569,6 +569,8 @@ bool System::LoadMap(const string &filename)
             mnFrameId = it->mnFrameId;
     }
     Frame::nNextId = mnFrameId;
+    mpMap->NewestKeyFrame = mpMap->GetAllKeyFrames().back();
+//     mpMap->NewestKeyFrame->mnId = mnFrameId;
     cout << " ...done" << endl;
     in.close();
     return true;
