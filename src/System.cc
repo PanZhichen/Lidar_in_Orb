@@ -101,6 +101,9 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     {
         mpKeyFrameDatabase = new KeyFrameDatabase(mpVocabulary);
         mpMap = new Map();
+	KeyFrame* KF_temp = new KeyFrame();
+	KF_temp->mnId = 0;
+	mpMap->NewestKeyFrame = KF_temp;
     }
 
     //Create Drawers. These are used by the Viewer
