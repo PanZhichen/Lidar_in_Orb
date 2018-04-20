@@ -272,6 +272,13 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const pcl::PointCloud<pc
 
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
     {
+        if(depth->size()<100){
+	  std::cout<<"\033[31m POINTCLOUD FAILED : Less of points!!"<<"\033[0m"<<std::endl;
+	  mCurrentFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
+	  mCurrentFrame.mTcw.at<float>(0,0)=99;
+	  mCurrentFrame.mTcw.at<float>(0,1)=99;
+	  return mCurrentFrame.mTcw.clone();
+	}
         mCurrentFrame = Frame(mImGray,depth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 	mCurrentFrame.mTcw_last=mTcw_last;
 	u_int depth_NUM = 0;

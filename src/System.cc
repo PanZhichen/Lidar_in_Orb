@@ -247,15 +247,15 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
 cv::Mat System::TrackMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::PointXYZI>::Ptr &depth, const double &timestamp, bool Refresh_DepthCloud)
 {
     cv::Mat Tcw;
-    if(depth->points.size()<100){
-      std::cout<<"\033[31m SYSTEM FAILED : Do Not Have Enough Points!!!"<<"\033[0m"<<std::endl;
-      Tcw = cv::Mat::eye(4,4,CV_32F);
-      Tcw.at<float>(0,0)=99;
-      Tcw.at<float>(0,1)=99;
-      return Tcw;
-    }
-    else
-    {
+//     if(depth->points.size()<100){
+//       std::cout<<"\033[31m SYSTEM FAILED : Do Not Have Enough Points!!!"<<"\033[0m"<<std::endl;
+//       Tcw = cv::Mat::eye(4,4,CV_32F);
+//       Tcw.at<float>(0,0)=99;
+//       Tcw.at<float>(0,1)=99;
+//       return Tcw;
+//     }
+//     else
+//     {
 	if(mSensor!=MONOCULAR)
 	{
 	    cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
@@ -304,7 +304,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const pcl::PointCloud<pcl::Poi
 	mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
 
 	return Tcw;
-    }
+//     }
 }
 
 void System::ActivateLocalizationMode()
