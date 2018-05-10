@@ -159,6 +159,8 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     
     if (bReuseMap)
         mState = LOST;
+    
+    mState_last = LOST;
 }
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
@@ -500,7 +502,7 @@ void Tracking::Track()
             mlpTemporalPoints.clear();
 
             // Check if we need to insert a new keyframe
-            if(NeedNewKeyFrame())
+            if(NeedNewKeyFrame() || mState_last==LOST)
                 CreateNewKeyFrame();
 
             // We allow points with high innovation (considererd outliers by the Huber Function)
@@ -549,6 +551,7 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
+    mState_last = mState;
 
 }
 

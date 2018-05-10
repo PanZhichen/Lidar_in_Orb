@@ -93,6 +93,7 @@ public:
     };
 
     eTrackingState mState;
+    eTrackingState mState_last;
     eTrackingState mLastProcessedState;
 
     // Input sensor
