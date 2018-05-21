@@ -502,8 +502,10 @@ void Tracking::Track()
             mlpTemporalPoints.clear();
 
             // Check if we need to insert a new keyframe
-            if(NeedNewKeyFrame() || mState_last==LOST)
+            if(mState_last==LOST || NeedNewKeyFrame()){
                 CreateNewKeyFrame();
+		mState_last = OK;
+	    }
 
             // We allow points with high innovation (considererd outliers by the Huber Function)
             // pass to the new keyframe, so that bundle adjustment will finally decide
@@ -551,7 +553,7 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
-    mState_last = mState;
+//     mState_last = mState;
 
 }
 
