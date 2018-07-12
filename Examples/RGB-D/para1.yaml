@@ -68,6 +68,6 @@ Viewer.ViewpointY: -0.7
 Viewer.ViewpointZ: -1.8
 Viewer.ViewpointF: 500
 #--------------------------------------------------------------------------------------------
-# PointCloud Mapping
+# Map Parapeters
 #--------------------------------------------------------------------------------------------
-PointCloudMapping.Resolution: 0.03
+Map.mapfile: /home/nrsl/robot_ws/map.bin

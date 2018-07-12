@@ -23,4 +23,5 @@ Vocabulary/bin_vocabulary
 build/
 *~
 lib/
+cmake-build-debug/
 

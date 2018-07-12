@@ -17,11 +17,11 @@ make -j
 
 cd ../../../
 
-echo "Uncompress vocabulary ..."
+#echo "Uncompress vocabulary ..."
 
-cd Vocabulary
-tar -xf ORBvoc.txt.tar.gz
-cd ..
+#cd Vocabulary
+#tar -xf ORBvoc.txt.tar.gz
+#cd ..
 
 echo "Configuring and building ORB_SLAM2 ..."
 
@@ -30,9 +30,9 @@ cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
 
-cd ..
+#cd ..
 
-cd Vocabulary
-echo "Converting vocabulary to binary version"
-./bin_vocabulary
-cd ..
+#cd Vocabulary
+#echo "Converting vocabulary to binary version"
+#./bin_vocabulary
+#cd ..

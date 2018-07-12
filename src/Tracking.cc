@@ -291,6 +291,7 @@ void Tracking::Track()
     }
     else
     {
+      static bool re_loc = false;
         // System is initialized. Track Frame.
         bool bOK;
 
@@ -409,7 +410,23 @@ void Tracking::Track()
             if(bOK && !mbVO)
                 bOK = TrackLocalMap();
         }
-
+////////////////////////////////////////////
+        static bool once = false;
+        if(!bOK && !once){
+          mCurrentFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
+          std::ifstream infile("/home/nrsl/robot_ws/TheLastTcw.txt");
+          infile >> mCurrentFrame.mTcw.at<float>(0,0) >> mCurrentFrame.mTcw.at<float>(0,1) >> mCurrentFrame.mTcw.at<float>(0,2) >> mCurrentFrame.mTcw.at<float>(0,3)
+                 >> mCurrentFrame.mTcw.at<float>(1,0) >> mCurrentFrame.mTcw.at<float>(1,1) >> mCurrentFrame.mTcw.at<float>(1,2) >> mCurrentFrame.mTcw.at<float>(1,3)
+                 >> mCurrentFrame.mTcw.at<float>(2,0) >> mCurrentFrame.mTcw.at<float>(2,1) >> mCurrentFrame.mTcw.at<float>(2,2) >> mCurrentFrame.mTcw.at<float>(2,3)
+                 >> mCurrentFrame.mTcw.at<float>(3,0) >> mCurrentFrame.mTcw.at<float>(3,1) >> mCurrentFrame.mTcw.at<float>(3,2) >> mCurrentFrame.mTcw.at<float>(3,3);
+          infile.close();
+          mnLastRelocFrameId = mCurrentFrame.mnId;
+          CreateNewKeyFrame();
+          mpSystem->ActivateLocalizationMode();
+          bOK = true;
+        }
+        once = true;
+////////////////////////////////////////////
         if(bOK)
             mState = OK;
         else
@@ -421,52 +438,52 @@ void Tracking::Track()
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
-            // Update motion model
-            if(!mLastFrame.mTcw.empty())
-            {
-                cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
-                mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
-                mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
-                mVelocity = mCurrentFrame.mTcw*LastTwc;
-            }
-            else
-                mVelocity = cv::Mat();
+          // Update motion model
+          if(!mLastFrame.mTcw.empty())
+          {
+              cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
+              mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
+              mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
+              mVelocity = mCurrentFrame.mTcw*LastTwc;
+          }
+          else
+              mVelocity = cv::Mat();
 
-            mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+          mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
-            // Clean VO matches
-            for(int i=0; i<mCurrentFrame.N; i++)
-            {
-                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-                if(pMP)
-                    if(pMP->Observations()<1)
-                    {
-                        mCurrentFrame.mvbOutlier[i] = false;
-                        mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-                    }
-            }
+          // Clean VO matches
+          for(int i=0; i<mCurrentFrame.N; i++)
+          {
+              MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+              if(pMP)
+                  if(pMP->Observations()<1)
+                  {
+                      mCurrentFrame.mvbOutlier[i] = false;
+                      mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+                  }
+          }
 
-            // Delete temporal MapPoints
-            for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
-            {
-                MapPoint* pMP = *lit;
-                delete pMP;
-            }
-            mlpTemporalPoints.clear();
+          // Delete temporal MapPoints
+          for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
+          {
+              MapPoint* pMP = *lit;
+              delete pMP;
+          }
+          mlpTemporalPoints.clear();
 
-            // Check if we need to insert a new keyframe
-            if(NeedNewKeyFrame())
-                CreateNewKeyFrame();
+          // Check if we need to insert a new keyframe
+          if(NeedNewKeyFrame())
+              CreateNewKeyFrame();
 
-            // We allow points with high innovation (considererd outliers by the Huber Function)
-            // pass to the new keyframe, so that bundle adjustment will finally decide
-            // if they are outliers or not. We don't want next frame to estimate its position
-            // with those points so we discard them in the frame.
-            for(int i=0; i<mCurrentFrame.N;i++)
-            {
-                if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
-                    mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-            }
+          // We allow points with high innovation (considererd outliers by the Huber Function)
+          // pass to the new keyframe, so that bundle adjustment will finally decide
+          // if they are outliers or not. We don't want next frame to estimate its position
+          // with those points so we discard them in the frame.
+          for(int i=0; i<mCurrentFrame.N;i++)
+          {
+              if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
+                  mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+          }
         }
 
         // Reset if the camera get lost soon after initialization
