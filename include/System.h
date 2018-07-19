@@ -141,8 +141,10 @@ public:
     
     vector<KeyFrame*> getAllKeyFrames()
     {
-	return mpMap->GetAllKeyFrames();
+	    return mpMap->GetAllKeyFrames();
     }
+
+    void setTrackMode(bool flag);
 
 private:
     // Save/Load functions

@@ -583,5 +583,9 @@ uint System::getLoopNum()
     return mpLoopCloser->DETECT_LOOP;
 }
 
+void System::setTrackMode(bool flag)
+{
+    mpTracker -> mbOnlyTracking = flag;
+}
 
 } //namespace ORB_SLAM

@@ -25,4 +25,7 @@ build/
 lib/
 .kdev4/
 Lidar_in_Orb.kdev4
+.idea/
+cmake-build-debug/
+
 
